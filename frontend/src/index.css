@@ -1,0 +1,287 @@
+/* index.css
+   ----------
+   Design system foundation for the Employee Portal.
+   Defines the visual language (color, type, radius, shadow, motion)
+   as CSS custom properties, then a small set of global utility
+   classes reused across pages. Component-level layout still lives
+   in each component; this file is the single source of truth for
+   the tokens they all draw from.
+*/
+
+:root {
+  /* ---- Color: neutral surfaces ---- */
+  --eport-bg: #f5f6fb;
+  --eport-surface: #ffffff;
+  --eport-border: #e8e9f2;
+  --eport-border-soft: #f0f1f7;
+
+  /* ---- Color: text ---- */
+  --eport-text: #14151f;
+  --eport-text-secondary: #6b7080;
+  --eport-text-tertiary: #9498a8;
+
+  /* ---- Color: brand (indigo/violet, distinct from Ant's default blue) ---- */
+  --eport-primary: #5b5fef;
+  --eport-primary-dark: #4448cc;
+  --eport-primary-darker: #34378f;
+  --eport-primary-soft: #eef0ff;
+  --eport-primary-soft-hover: #e2e4ff;
+
+  /* ---- Color: semantic ---- */
+  --eport-success: #17a06b;
+  --eport-success-soft: #e9faf3;
+  --eport-danger: #e5484d;
+  --eport-danger-soft: #fef1f1;
+  --eport-warning: #d98a1e;
+  --eport-warning-soft: #fdf4e6;
+
+  /* ---- Color: sidebar (near-black, brand-tinted) ---- */
+  --eport-sidebar-bg: #14152a;
+  --eport-sidebar-bg-active: #1e2040;
+  --eport-sidebar-text: #a6a8c7;
+  --eport-sidebar-text-active: #ffffff;
+  --eport-sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* ---- Radius ---- */
+  --eport-radius-sm: 8px;
+  --eport-radius-md: 12px;
+  --eport-radius-lg: 16px;
+
+  /* ---- Shadow ---- */
+  --eport-shadow-sm: 0 1px 2px rgba(20, 21, 31, 0.05);
+  --eport-shadow-md: 0 6px 16px -4px rgba(20, 21, 31, 0.08), 0 2px 4px rgba(20, 21, 31, 0.04);
+  --eport-shadow-lg: 0 16px 40px -8px rgba(20, 21, 31, 0.16);
+
+  /* ---- Motion ---- */
+  --eport-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --eport-duration: 160ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--eport-bg);
+  color: var(--eport-text);
+}
+
+h1, h2, h3, h4,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.eport-display {
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif !important;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--eport-primary);
+  text-decoration: none;
+  transition: color var(--eport-duration) var(--eport-ease);
+}
+
+a:hover {
+  color: var(--eport-primary-dark);
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d8e5;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b9bccf;
+}
+
+/* ---- Reusable surface: the "card" every page section sits in ---- */
+.eport-card {
+  background: var(--eport-surface);
+  border: 1px solid var(--eport-border);
+  border-radius: var(--eport-radius-md);
+  box-shadow: var(--eport-shadow-sm);
+  transition: box-shadow var(--eport-duration) var(--eport-ease);
+}
+
+.eport-page {
+  animation: eport-fade-in 220ms var(--eport-ease);
+}
+
+@keyframes eport-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eport-page,
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Ant Design Table refinements ---- */
+.eport-table .ant-table {
+  background: transparent;
+}
+
+.eport-table .ant-table-thead > tr > th {
+  background: #fafafe !important;
+  color: var(--eport-text-secondary);
+  font-weight: 600;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--eport-border) !important;
+}
+
+.eport-table .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.eport-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--eport-border-soft);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.eport-table .ant-table-tbody > tr:hover > td {
+  background: var(--eport-primary-soft) !important;
+}
+
+.eport-table .ant-table-tbody > tr:nth-child(even) > td {
+  background: #fbfbfe;
+}
+
+.eport-table .ant-table-tbody > tr:nth-child(even):hover > td {
+  background: var(--eport-primary-soft) !important;
+}
+
+.ant-table-cell {
+  word-break: break-word;
+}
+
+/* ---- Auth split-screen background flourish ---- */
+.eport-auth-bg {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(91, 95, 239, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(91, 95, 239, 0.25), transparent 40%),
+    linear-gradient(160deg, #14152a 0%, #1e2040 60%, #2a2d5c 100%);
+}
+
+/* ---- Stat / quick-action tiles ---- */
+.eport-icon-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--eport-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.eport-hoverable {
+  transition: transform var(--eport-duration) var(--eport-ease),
+    box-shadow var(--eport-duration) var(--eport-ease), border-color var(--eport-duration) var(--eport-ease);
+}
+
+.eport-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--eport-shadow-md);
+  border-color: #dcdeed;
+}
+
+/* ---- Sidebar menu (dark, brand-tinted) ---- */
+.eport-sidebar-menu.ant-menu {
+  color: var(--eport-sidebar-text);
+}
+
+.eport-sidebar-menu .ant-menu-item {
+  color: var(--eport-sidebar-text) !important;
+  margin: 4px 0 !important;
+  width: 100% !important;
+  font-weight: 500;
+  font-size: 13.5px;
+}
+
+.eport-sidebar-menu .ant-menu-item .anticon {
+  font-size: 16px;
+}
+
+.eport-sidebar-menu .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #fff !important;
+}
+
+.eport-sidebar-menu .ant-menu-item-selected {
+  background: var(--eport-sidebar-bg-active) !important;
+  color: #fff !important;
+  position: relative;
+}
+
+.eport-sidebar-menu .ant-menu-item-selected::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #8083f7, #5b5fef);
+}
+
+/* ---- Auth split-screen: stack to a single centered panel on mobile ---- */
+@media (max-width: 860px) {
+  .eport-auth-branding {
+    display: none !important;
+  }
+  .eport-auth-form-panel {
+    flex: 1 !important;
+  }
+}
+
+/* ---- Navbar search: UI only, hidden on narrow viewports ---- */
+.eport-navbar-search {
+  display: inline-flex !important;
+}
+
+@media (max-width: 768px) {
+  .eport-navbar-search {
+    display: none !important;
+  }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 576px) {
+  .ant-layout-content.eport-content {
+    margin: 8px !important;
+    padding: 16px !important;
+  }
+}
