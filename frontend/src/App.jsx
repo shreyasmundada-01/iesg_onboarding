@@ -13,7 +13,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
 
 import { AuthProvider } from "./auth/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { AdminRoute } from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 import Login from "./pages/Login";
@@ -21,6 +21,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import Addresses from "./pages/Addresses";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 // Design tokens for the whole app. Component-level overrides here keep
@@ -90,6 +91,11 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/employees" element={<Employees />} />
               <Route path="/addresses" element={<Addresses />} />
+
+              {/* Admin-only */}
+              <Route element={<AdminRoute />}>
+                <Route path="/users" element={<UserManagement />} />
+              </Route>
             </Route>
           </Route>
 

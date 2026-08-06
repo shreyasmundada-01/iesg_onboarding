@@ -34,8 +34,27 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
 
+def get_user_by_id(db: Session, uid: int) -> User:
+    user = db.query(User).filter(User.uid == uid).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {uid} not found"
+        )
+    return user
+
+
 def create_user(db: Session, user_in: UserCreate) -> User:
-    """Register a new user. Raises 400 if username/email already exist."""
+    """
+    Register a new user. Raises 400 if username/email already exist.
+
+    SECURITY: Role is ALWAYS hardcoded to "user" here, regardless of what
+    the UserCreate schema does or does not contain. UserCreate has no
+    `role` field at all (see schemas.py), so even if a client sends a
+    `role` key in the JSON body, Pydantic silently ignores it as an
+    unrecognized field and it never reaches this function. This line is
+    the second, defense-in-depth layer of that guarantee: every new
+    account becomes role="user" no matter what.
+    """
     if get_user_by_username(db, user_in.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered"
@@ -58,6 +77,42 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     return db_user
 
 
+def create_first_admin(
+    db: Session, *, email: str, username: str, password: str
+) -> Optional[User]:
+    """
+    Bootstrap the very first admin account, but ONLY if no admin account
+    exists anywhere in the users table yet. Safe to call on every
+    application startup - it is idempotent and a strict no-op once any
+    admin exists.
+    """
+    admin_exists = db.query(User).filter(User.role == "admin").first()
+    if admin_exists:
+        return None
+
+    # If a user with this email/username already exists (e.g. re-running
+    # against an existing DB) but isn't an admin, promote them instead of
+    # trying to insert a duplicate row.
+    existing = get_user_by_email(db, email) or get_user_by_username(db, username)
+    if existing:
+        existing.role = "admin"
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    admin_user = User(
+        username=username,
+        email=email,
+        hashed_password=hash_password(password),
+        role="admin",
+        is_active=True,
+    )
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+    return admin_user
+
+
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
     """Return the user if credentials are valid, else None."""
     user = get_user_by_username(db, username)
@@ -65,6 +120,48 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
         return None
     if not verify_password(password, user.hashed_password):
         return None
+    return user
+
+
+def list_users(db: Session) -> Tuple[List[User], int]:
+    """Return every registered user (admin-only view) plus the total count."""
+    query = db.query(User).order_by(User.uid.asc())
+    total = query.with_entities(func.count(User.uid)).scalar() or 0
+    return query.all(), total
+
+
+def count_admins(db: Session) -> int:
+    return db.query(User).filter(User.role == "admin").with_entities(func.count(User.uid)).scalar() or 0
+
+
+def set_user_role(db: Session, uid: int, new_role: str) -> User:
+    """
+    Promote/demote a user. Refuses to demote the last remaining admin,
+    since that would leave the application with no admin account at all.
+    """
+    user = get_user_by_id(db, uid)
+
+    if user.role == "admin" and new_role == "user" and count_admins(db) <= 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot demote the last remaining admin",
+        )
+
+    user.role = new_role
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def change_own_password(db: Session, user: User, current_password: str, new_password: str) -> User:
+    """Let a user change their own password after verifying the current one."""
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect"
+        )
+    user.hashed_password = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
     return user
 
 

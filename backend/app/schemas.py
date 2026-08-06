@@ -62,7 +62,35 @@ class TokenPayload(BaseModel):
     """Decoded JWT payload shape."""
 
     sub: Optional[str] = None
+    role: Optional[str] = None
     exp: Optional[int] = None
+
+
+class UserRoleUpdate(BaseModel):
+    """Payload for PATCH /users/{uid}/role - admin-only promote/demote."""
+
+    role: str = Field(..., description="Must be either 'admin' or 'user'")
+
+    @field_validator("role")
+    @classmethod
+    def role_must_be_valid(cls, v: str) -> str:
+        if v not in ("admin", "user"):
+            raise ValueError("role must be either 'admin' or 'user'")
+        return v
+
+
+class UserPage(BaseModel):
+    """Paginated envelope for GET /users list responses (admin-only)."""
+
+    total: int
+    items: List[UserOut]
+
+
+class PasswordChange(BaseModel):
+    """Payload for POST /auth/change-password - users change their own password."""
+
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 # ---------------------------------------------------------------------------

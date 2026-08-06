@@ -21,7 +21,7 @@ from app import crud
 from app.database import get_db
 from app.models import User
 from app.schemas import AddressCreate, AddressOut, AddressPage, AddressUpdate, MessageResponse
-from app.security import get_current_active_user
+from app.security import get_current_active_user, require_admin
 
 router = APIRouter(prefix="/addresses", tags=["Addresses"])
 
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/addresses", tags=["Addresses"])
 def create_address(
     address_in: AddressCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     return crud.create_address(db, address_in)
 
@@ -79,7 +79,7 @@ def update_address(
     aid: int,
     address_in: AddressUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     return crud.update_address(db, aid, address_in)
 
@@ -92,7 +92,7 @@ def update_address(
 def delete_address(
     aid: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     crud.delete_address(db, aid)
     return MessageResponse(detail=f"Address {aid} deactivated successfully")

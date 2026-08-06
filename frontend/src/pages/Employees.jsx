@@ -31,6 +31,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../api/axios";
+import { useAuth } from "../auth/AuthContext";
 
 const { Title, Text } = Typography;
 
@@ -52,6 +53,7 @@ function avatarColor(seed = "") {
 }
 
 export default function Employees() {
+  const { isAdmin } = useAuth();
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -190,35 +192,39 @@ export default function Employees() {
       width: 120,
       render: (isActive) => <StatusBadge active={isActive} />,
     },
-    {
-      title: "",
-      key: "actions",
-      width: 110,
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
-              style={{ color: "var(--eport-text-secondary)" }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete employee"
-              description={`Are you sure you want to delete "${record.name}"?`}
-              onConfirm={() => handleDelete(record.eid)}
-              okText="Delete"
-              okButtonProps={{ danger: true }}
-              cancelText="Cancel"
-            >
-              <Button type="text" icon={<DeleteOutlined />} danger />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            title: "",
+            key: "actions",
+            width: 110,
+            render: (_, record) => (
+              <Space size={4}>
+                <Tooltip title="Edit">
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => openEditModal(record)}
+                    style={{ color: "var(--eport-text-secondary)" }}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <Popconfirm
+                    title="Delete employee"
+                    description={`Are you sure you want to delete "${record.name}"?`}
+                    onConfirm={() => handleDelete(record.eid)}
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    cancelText="Cancel"
+                  >
+                    <Button type="text" icon={<DeleteOutlined />} danger />
+                  </Popconfirm>
+                </Tooltip>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -228,9 +234,11 @@ export default function Employees() {
         title="Employees"
         subtitle="Manage your organization's employee records."
         action={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-            Add Employee
-          </Button>
+          isAdmin ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+              Add Employee
+            </Button>
+          ) : null
         }
       />
 
@@ -271,14 +279,18 @@ export default function Employees() {
                   <>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>No employees yet</div>
                     <Text type="secondary" style={{ fontSize: 13 }}>
-                      Add your first employee to get started.
+                      {isAdmin
+                        ? "Add your first employee to get started."
+                        : "No employee records have been added yet."}
                     </Text>
                   </>
                 }
               >
-                <Button icon={<UserAddOutlined />} onClick={openCreateModal}>
-                  Add Employee
-                </Button>
+                {isAdmin && (
+                  <Button icon={<UserAddOutlined />} onClick={openCreateModal}>
+                    Add Employee
+                  </Button>
+                )}
               </Empty>
             ),
           }}

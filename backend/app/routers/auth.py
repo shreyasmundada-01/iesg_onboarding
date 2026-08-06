@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.database import get_db
 from app.models import User
-from app.schemas import Token, UserCreate, UserOut
+from app.schemas import PasswordChange, Token, UserCreate, UserOut
 from app.security import create_access_token, get_current_active_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -58,7 +58,7 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 
-    access_token = create_access_token(subject=user.username)
+    access_token = create_access_token(subject=user.username, role=user.role)
     return Token(access_token=access_token, token_type="bearer")
 
 
@@ -70,3 +70,23 @@ def login(
 def read_current_user(current_user: User = Depends(get_current_active_user)) -> User:
     """Return the profile of the user identified by the bearer token."""
     return current_user
+
+
+@router.post(
+    "/change-password",
+    response_model=UserOut,
+    summary="Change the current user's own password",
+)
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """
+    Any authenticated user (admin or user) can change their OWN password
+    by supplying their current password for verification. This endpoint
+    never accepts a target user id - it always acts on the caller.
+    """
+    return crud.change_own_password(
+        db, current_user, payload.current_password, payload.new_password
+    )

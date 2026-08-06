@@ -6,9 +6,22 @@ Owns ONLY security concerns:
 - JWT creation and decoding (python-jose)
 - OAuth2PasswordBearer scheme
 - `get_current_user` / `get_current_active_user` FastAPI dependencies
+- Role-based authorization dependencies (`require_admin`, `require_role`)
 
 No routes, no SQL queries live here - crud.py and the routers call into
 this module, never the other way around.
+
+SECURITY NOTE ON ROLES:
+The JWT payload carries a `role` claim per the RBAC spec, but that claim
+is informational only and is NEVER trusted for authorization decisions.
+`get_current_user` always re-fetches the user row from the database by
+username on every request, and every role check in this file compares
+against `current_user.role` as read fresh from the database. This means
+a stale or hand-edited token cannot grant elevated privileges: even if
+someone decodes their token and edits the `role` field, the signature
+check will fail (since the payload changed) and, even hypothetically if
+it didn't, the actual authorization check never looks at the token's
+role claim - only the database's.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -51,17 +64,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    subject: str, role: Optional[str] = None, expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Create a signed JWT access token.
 
-    The token payload always contains `sub` (the username) and `exp`
-    (expiration timestamp), per the spec: {"sub": "username"}.
+    The token payload contains `sub` (the username), `role` (the user's
+    role at the time of login, for informational/debugging purposes only -
+    see the SECURITY NOTE above), and `exp` (expiration timestamp).
     """
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode = {"sub": subject, "exp": expire}
+    to_encode = {"sub": subject, "role": role, "exp": expire}
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -80,7 +96,7 @@ def decode_access_token(token: str) -> TokenPayload:
         username: Optional[str] = payload.get("sub")
         if username is None:
             raise credentials_exception
-        return TokenPayload(sub=username, exp=payload.get("exp"))
+        return TokenPayload(sub=username, role=payload.get("role"), exp=payload.get("exp"))
     except JWTError as exc:
         raise credentials_exception from exc
 
@@ -114,4 +130,47 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
     """Ensure the authenticated user's account is still active."""
     if not current_user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
+    return current_user
+
+
+# ---------------------------------------------------------------------------
+# Role-based authorization dependencies
+# ---------------------------------------------------------------------------
+
+def require_role(*allowed_roles: str):
+    """
+    Dependency factory: returns a FastAPI dependency that only allows
+    through users whose (freshly-fetched-from-DB) role is one of
+    `allowed_roles`. Raises 403 Forbidden otherwise.
+
+    Usage:
+        @router.get("/admin-only", dependencies=[Depends(require_role("admin"))])
+        or
+        current_user: User = Depends(require_role("admin"))
+    """
+
+    def dependency(current_user: User = Depends(get_current_active_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action",
+            )
+        return current_user
+
+    return dependency
+
+
+def require_admin(current_user: User = Depends(get_current_active_user)) -> User:
+    """
+    Dependency that only allows through users with role == "admin".
+
+    Equivalent to require_role("admin") but kept as a dedicated,
+    explicitly-named function since admin-only access is the primary
+    authorization boundary in this application.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges are required to perform this action",
+        )
     return current_user

@@ -28,12 +28,14 @@ import {
   EnvironmentOutlined,
 } from "@ant-design/icons";
 import api from "../api/axios";
+import { useAuth } from "../auth/AuthContext";
 import { PageHeader, StatusBadge } from "./Employees";
 
 const { Text } = Typography;
 const { TextArea } = Input;
 
 export default function Addresses() {
+  const { isAdmin } = useAuth();
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -178,35 +180,39 @@ export default function Addresses() {
       width: 120,
       render: (isActive) => <StatusBadge active={isActive} />,
     },
-    {
-      title: "",
-      key: "actions",
-      width: 110,
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
-              style={{ color: "var(--eport-text-secondary)" }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete address"
-              description="Are you sure you want to delete this address?"
-              onConfirm={() => handleDelete(record.aid)}
-              okText="Delete"
-              okButtonProps={{ danger: true }}
-              cancelText="Cancel"
-            >
-              <Button type="text" icon={<DeleteOutlined />} danger />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    ...(isAdmin
+      ? [
+          {
+            title: "",
+            key: "actions",
+            width: 110,
+            render: (_, record) => (
+              <Space size={4}>
+                <Tooltip title="Edit">
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => openEditModal(record)}
+                    style={{ color: "var(--eport-text-secondary)" }}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <Popconfirm
+                    title="Delete address"
+                    description="Are you sure you want to delete this address?"
+                    onConfirm={() => handleDelete(record.aid)}
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    cancelText="Cancel"
+                  >
+                    <Button type="text" icon={<DeleteOutlined />} danger />
+                  </Popconfirm>
+                </Tooltip>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -216,9 +222,11 @@ export default function Addresses() {
         title="Addresses"
         subtitle="Manage employee addresses across your organization."
         action={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-            Add Address
-          </Button>
+          isAdmin ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+              Add Address
+            </Button>
+          ) : null
         }
       />
 
@@ -259,14 +267,18 @@ export default function Addresses() {
                   <>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>No addresses yet</div>
                     <Text type="secondary" style={{ fontSize: 13 }}>
-                      Add an address to link it to an employee.
+                      {isAdmin
+                        ? "Add an address to link it to an employee."
+                        : "No addresses have been added yet."}
                     </Text>
                   </>
                 }
               >
-                <Button icon={<PlusOutlined />} onClick={openCreateModal}>
-                  Add Address
-                </Button>
+                {isAdmin && (
+                  <Button icon={<PlusOutlined />} onClick={openCreateModal}>
+                    Add Address
+                  </Button>
+                )}
               </Empty>
             ),
           }}

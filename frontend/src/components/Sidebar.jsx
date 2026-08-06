@@ -15,22 +15,32 @@ import {
   EnvironmentOutlined,
   LogoutOutlined,
   UserOutlined,
+  IdcardOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 const { Sider } = Layout;
 
-const menuItems = [
+const baseMenuItems = [
   { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/employees", icon: <TeamOutlined />, label: "Employees" },
   { key: "/addresses", icon: <EnvironmentOutlined />, label: "Addresses" },
 ];
 
+const adminMenuItem = {
+  key: "/users",
+  icon: <IdcardOutlined />,
+  label: "User Management",
+};
+
 export default function Sidebar({ collapsed, onCollapse }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
+
+  // Admin-only nav item is appended for admins so normal users never see it.
+  const menuItems = isAdmin ? [...baseMenuItems, adminMenuItem] : baseMenuItems;
 
   // Match the deepest menu key that prefixes the current path so nested
   // routes (e.g. /employees/1) still highlight the right parent item.

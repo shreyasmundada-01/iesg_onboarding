@@ -14,8 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.database import init_db
-from app.routers import address, auth, employee
+from app.database import SessionLocal, init_db
+from app.routers import address, auth, employee, users
+from app import crud
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -45,8 +46,24 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 @app.on_event("startup")
 def on_startup() -> None:
-    """Create database tables if they do not already exist."""
+    """
+    Create database tables if they do not already exist, then ensure
+    exactly one admin account exists by auto-creating the default admin
+    the first time the app ever starts (idempotent - a no-op on every
+    subsequent startup once any admin exists).
+    """
     init_db()
+
+    db = SessionLocal()
+    try:
+        crud.create_first_admin(
+            db,
+            email="shreyas@gmail.com",
+            username="shreyas",
+            password="shreyas123",
+        )
+    finally:
+        db.close()
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +102,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 app.include_router(auth.router)
 app.include_router(employee.router)
 app.include_router(address.router)
+app.include_router(users.router)
 
 
 # ---------------------------------------------------------------------------

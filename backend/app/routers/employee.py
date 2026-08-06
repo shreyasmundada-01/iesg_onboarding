@@ -21,7 +21,7 @@ from app import crud
 from app.database import get_db
 from app.models import User
 from app.schemas import EmployeeCreate, EmployeeOut, EmployeePage, EmployeeUpdate, MessageResponse
-from app.security import get_current_active_user
+from app.security import get_current_active_user, require_admin
 
 router = APIRouter(prefix="/employee", tags=["Employees"])
 
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/employee", tags=["Employees"])
 def create_employee(
     employee_in: EmployeeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     return crud.create_employee(db, employee_in)
 
@@ -80,7 +80,7 @@ def update_employee(
     eid: int,
     employee_in: EmployeeUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     return crud.update_employee(db, eid, employee_in)
 
@@ -93,7 +93,7 @@ def update_employee(
 def delete_employee(
     eid: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_admin),
 ):
     crud.delete_employee(db, eid)
     return MessageResponse(detail=f"Employee {eid} deactivated successfully")
